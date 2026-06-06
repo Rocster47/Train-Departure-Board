@@ -1,0 +1,34 @@
+# Private credentials
+secrets.h
+
+# Arduino IDE 1.x and 2.x temporary build folders
+/build/
+/build-tmp/
+bin/
+
+# Compilation outputs and libraries locally compiled
+*.el
+*.a
+*.o
+*.so
+*.d
+
+# Pre-compiled sketch binaries
+*.hex
+*.elf
+*.bin
+*.eep
+
+# Arduino IDE cache
+.recipe.c.o.d
+..recipe.c.o.d
+output/
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# OS files
+.DS_Store
+Thumbs.db
