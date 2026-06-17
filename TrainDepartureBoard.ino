@@ -102,7 +102,7 @@ void setup() {
   lcd.backlight();
 
   lcd.setCursor(3, 1);
-  lcd.println("Connecting....");
+  lcd.print("Connecting....");
 
   Serial.begin(115200);
   Serial.println("");
