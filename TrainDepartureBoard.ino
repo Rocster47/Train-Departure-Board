@@ -90,6 +90,7 @@ bool fetchOrPagePerformed = false;
 
 void wifiConnect();
 void fetchDepartures();
+void drawPage();
 void changePage();
 String getAbbrevStationName(const String& stationName);
 String getCurrentTime();
@@ -114,24 +115,11 @@ void setup() {
     "pool.ntp.org"
   );
 
-  currentMillis = millis();
-  apiPrevMillis = currentMillis;
-  pagePrevMillis = currentMillis;
-
   fetchDepartures();
+  
+  fetchOrPagePerformed = true;
 
   prevTime = getCurrentTime();
-
-  lcd.clear();
-
-  lcd.setCursor(1, 1);
-  lcd.print("Lime Street Statn.");
-  Serial.println("Lime Street Statn.");
-
-  lcd.setCursor(6, 2);
-  lcd.print(prevTime);
-  Serial.println(prevTime);
-  Serial.println("");
 }
 
 void loop() {
@@ -142,26 +130,24 @@ void loop() {
 
   if (currentMillis - apiPrevMillis >= API_INTERVAL_IN_MILLIS && page == 0) {
     if (!fetchOrPagePerformed) {
-      Serial.println();
+      Serial.println("");
     }
 
     fetchDepartures();
 
     fetchOrPagePerformed = true;
-    apiPrevMillis = currentMillis;
   }
 
   // Change the page if it is the time to do so
 
   if (currentMillis - pagePrevMillis >= PAGE_INTERVAL_IN_MILLIS) {
     if (!fetchOrPagePerformed) {
-      Serial.println();
+      Serial.println("");
     }
 
     changePage();
 
     fetchOrPagePerformed = true;
-    pagePrevMillis = currentMillis;
   }
 
   // Update the time displayed
@@ -185,7 +171,12 @@ void loop() {
 // ============== Helper Functions =============
 
 void wifiConnect() {
+  WiFi.disconnect(true);
+  
+  delay(100);
+
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
   Serial.print("Connecting to WiFi");
   
   while (WiFi.status() != WL_CONNECTED) {
@@ -200,8 +191,22 @@ void wifiConnect() {
 }
 
 void fetchDepartures() {
+  lcd.clear();
+  
+  lcd.setCursor(1, 1);
+  lcd.print("Retrieving Data...");
+  
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("Connection lost.");
+
+    lcd.clear();
+
+    lcd.setCursor(2, 1);
+    lcd.print("Connection Lost!");
+
+    lcd.setCursor(2, 2);
+    lcd.print("Reconnecting....");
+
     wifiConnect();
   }
 
@@ -261,46 +266,37 @@ void fetchDepartures() {
     Serial.println(" Merseyrail departures.");
 
     for (int i = 0; i < departureCount; i++) {
-      Serial.print(departures[i].time);
+      Serial.print(departures[i].platform);
       Serial.print(" ");
 
-      Serial.print(departures[i].platform);
+      Serial.print(departures[i].time);
       Serial.print(" ");
 
       Serial.println(departures[i].destination);
     }
-
-    Serial.println("");
-
   } else {
-    Serial.println("Error on HTTP request.\n");
+    Serial.println("Error on HTTP request.");
   }
+
+  Serial.println("");
 
   client.end();
+
+  currentMillis = millis();
+  apiPrevMillis = currentMillis;
+  pagePrevMillis = currentMillis;
+
+  currentTime = getCurrentTime();
+
+  drawPage();
 }
 
-void changePage() {
+void drawPage() {
   Serial.println("Changing page...");
-
-  int currentMinutes = timeToMinutes(currentTime.substring(0, 5));
-
-  while (firstValid < departureCount && timeToMinutes(departures[firstValid].time) < currentMinutes) {
-    firstValid++;
-  }
-  
-  validDepartureCount = departureCount - firstValid;
-
-  maxPage = (validDepartureCount + 1) / 2;
-
-  if (maxPage > 3) {
-    maxPage = 3;
-  }
   
   lcd.clear();
-  
-  if (page >= maxPage) {
-    page = 0;
 
+  if (page == 0) {
     lcd.setCursor(1, 1);
     lcd.print("Lime Street Statn.");
     Serial.println("Lime Street Statn.");
@@ -309,8 +305,6 @@ void changePage() {
     lcd.print(currentTime);
     Serial.println(currentTime);
   } else {
-    page++;
-    
     int startIndex = firstValid + ((page - 1) * 2);
 
     String displayText = "Pl  Time Destination";
@@ -343,6 +337,32 @@ void changePage() {
   }
 
   Serial.println("");
+}
+
+void changePage() {
+  int currentMinutes = timeToMinutes(currentTime.substring(0, 5));
+
+  while (firstValid < departureCount && timeToMinutes(departures[firstValid].time) < currentMinutes) {
+    firstValid++;
+  }
+  
+  validDepartureCount = departureCount - firstValid;
+
+  maxPage = (validDepartureCount + 1) / 2;
+
+  if (maxPage > 3) {
+    maxPage = 3;
+  }
+  
+  if (page >= maxPage) {
+    page = 0;
+  } else {
+    page++;
+  }
+
+  drawPage();
+
+  pagePrevMillis = currentMillis;
 }
 
 String getAbbrevStationName(const String& stationName) {
